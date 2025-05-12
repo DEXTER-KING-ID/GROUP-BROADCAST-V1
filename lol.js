@@ -6,7 +6,7 @@ require('dotenv').config();
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
 const BRANCH = 'main';
-const CLONE_DIR = './'; // Root directory
+const CLONE_DIR = './GROUP-BROADCAST-SYSTEM'; // Update this to the directory where your index.js file is located
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
 // Color Functions
@@ -75,5 +75,5 @@ if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
 
 writeEnvFile();
 
-// FIXED: Use relative require directly
-require('./index.js');
+// FIXED: Use relative require and reference the index.js inside the repo folder
+require(path.join(CLONE_DIR, 'index.js'));
