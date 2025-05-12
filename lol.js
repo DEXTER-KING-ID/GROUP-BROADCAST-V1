@@ -6,7 +6,7 @@ require('dotenv').config();
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
 const BRANCH = 'main';
-const CLONE_DIR = './GROUP-BROADCAST-SYSTEM'; // Update this to the directory where your index.js file is located
+const CLONE_DIR = './';
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
 // Color Functions
@@ -54,12 +54,12 @@ function writeEnvFile() {
   const envContent = `SESSION_ID=${process.env.SESSION_ID}
 OWNER_NUMBER=${process.env.OWNER_NUMBER}
 `;
-  fs.writeFileSync(path.join(CLONE_DIR, '.env'), envContent);
+  fs.writeFileSync(`${CLONE_DIR}/.env`, envContent);
   console.log(blue('🧾 .env file written to bot directory.\n'));
 }
 
 // === EXECUTION ===
-if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
+if (!fs.existsSync(CLONE_DIR)) {
   cloneRepo();
   writeEnvFile();
 } else if (AUTO_UPDATE) {
@@ -74,6 +74,4 @@ if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
 }
 
 writeEnvFile();
-
-// FIXED: Use relative require and reference the index.js inside the repo folder
-require(path.join(CLONE_DIR, 'index.js'));
+require(path.resolve(CLONE_DIR, 'index.js'));
