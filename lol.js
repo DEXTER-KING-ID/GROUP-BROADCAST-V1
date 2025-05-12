@@ -6,7 +6,7 @@ require('dotenv').config();
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
 const BRANCH = 'main';
-const CLONE_DIR = '';
+const CLONE_DIR = './';
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
 // Color Functions
