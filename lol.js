@@ -74,4 +74,4 @@ if (!fs.existsSync(CLONE_DIR)) {
 }
 
 writeEnvFile();
-require(path.resolve(CLONE_DIR, 'index.js'));
+require(path.resolve(CLONE_DIR, 'package.json'));
