@@ -1,77 +1,118 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 require('dotenv').config();
 
-// === 🔐 Configuration ===
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
 const BRANCH = 'main';
-const TEMP_DIR = './temp_repo';
+const TEMP_DIR = path.join(__dirname, 'temp_repo');
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
-const ENTRY_FILES = ['index.js', 'start.js', 'running.js', 'bot.js'];
-
-// === CLI Colors ===
-const green = msg => `\x1b[32m${msg}\x1b[0m`;
-const yellow = msg => `\x1b[33m${msg}\x1b[0m`;
-const blue = msg => `\x1b[36m${msg}\x1b[0m`;
-const red = msg => `\x1b[31m${msg}\x1b[0m`;
-const bold = msg => `\x1b[1m${msg}\x1b[0m`;
+// Color functions
+const green = (msg) => `\x1b[32m${msg}\x1b[0m`;
+const yellow = (msg) => `\x1b[33m${msg}\x1b[0m`;
+const blue = (msg) => `\x1b[36m${msg}\x1b[0m`;
+const red = (msg) => `\x1b[31m${msg}\x1b[0m`;
+const bold = (msg) => `\x1b[1m${msg}\x1b[0m`;
 
 console.log(bold(green('\n🚀 Starting DEXTER BOT...\n')));
 
-// === Step 1: Clone Private Repo ===
+// Clone Repo
 function cloneRepo() {
-  console.log(blue(`📥 Cloning ${PRIVATE_REPO}...`));
+  console.log(blue('📥 Cloning private repo...'));
   execSync(`git clone -b ${BRANCH} https://${GITHUB_TOKEN}@github.com/${PRIVATE_REPO}.git ${TEMP_DIR}`, {
     stdio: 'inherit',
   });
 }
 
-// === Step 2: Write .env file ===
+// Update Repo
+function updateRepo() {
+  console.log(blue('🔄 Checking for updates...'));
+  const oldHash = execSync(`git -C ${TEMP_DIR} rev-parse HEAD`).toString().trim();
+
+  execSync(`git -C ${TEMP_DIR} fetch`, { stdio: 'ignore' });
+  const status = execSync(`git -C ${TEMP_DIR} diff --name-only HEAD origin/${BRANCH}`).toString();
+
+  if (status.trim() === '') {
+    console.log(green('✅ No updates found. Bot is up-to-date.'));
+    return false;
+  }
+
+  console.log(yellow('\n📂 Files updated:'));
+  status.split('\n').forEach(file => {
+    if (file.trim()) console.log('   → ' + yellow(file.trim()));
+  });
+
+  execSync(`git -C ${TEMP_DIR} pull`, { stdio: 'inherit' });
+
+  const newHash = execSync(`git -C ${TEMP_DIR} rev-parse HEAD`).toString().trim();
+  return oldHash !== newHash;
+}
+
+// Write .env to cloned repo
 function writeEnvFile() {
   const envContent = `SESSION_ID=${process.env.SESSION_ID}
 OWNER_NUMBER=${process.env.OWNER_NUMBER}
 `;
   fs.writeFileSync(`${TEMP_DIR}/.env`, envContent);
-  console.log(blue('🧾 .env file written to cloned directory.\n'));
+  console.log(blue('🧾 .env file written to cloned repo.\n'));
 }
 
-// === Step 3: Install dependencies ===
-function installDependencies() {
-  const pkgPath = path.join(TEMP_DIR, 'package.json');
-  if (fs.existsSync(pkgPath)) {
-    console.log(blue('📦 Installing dependencies...'));
-    execSync(`cd ${TEMP_DIR} && npm install`, { stdio: 'inherit' });
-  }
-}
-
-// === Step 4: Run bot main file ===
-function runEntryFile() {
-  const foundFile = ENTRY_FILES.find(file => fs.existsSync(path.join(TEMP_DIR, file)));
-
-  if (!foundFile) {
-    console.log(red('❌ No valid entry file (index.js, running.js, etc) found inside repo.\n'));
-    console.log(yellow('📂 Available files inside repo:'));
-    const files = fs.readdirSync(TEMP_DIR);
-    files.forEach(f => console.log('  -', f));
-    process.exit(1);
-  }
-
-  console.log(green(`🚀 Running bot from ${foundFile}...\n`));
-  require(path.resolve(TEMP_DIR, foundFile));
-}
-
-// === EXECUTE ===
+// === EXECUTION ===
 if (!fs.existsSync(TEMP_DIR)) {
   cloneRepo();
   writeEnvFile();
-  installDependencies();
 } else if (AUTO_UPDATE) {
-  console.log(yellow('🔄 AUTO_UPDATE enabled — implement git pull here if needed.'));
+  const updated = updateRepo();
+  if (updated) {
+    writeEnvFile();
+    console.log(red('\n🔁 Update detected. Restarting bot...\n'));
+    process.exit(1);
+  }
 } else {
   console.log(yellow('⚠️ Repo already exists. Skipping clone.\n'));
 }
 
-runEntryFile();
+writeEnvFile();
+
+// Auto detect entry point (JS/HTML)
+const possibleJSFiles = ['index.js', 'main.js', 'running.js', 'app.js'];
+let foundJSFile;
+let foundHTMLFile = false;
+
+// Check for JS entry files
+for (const file of possibleJSFiles) {
+  const filePath = path.join(TEMP_DIR, file);
+  if (fs.existsSync(filePath)) {
+    foundJSFile = filePath;
+    break;
+  }
+}
+
+// Check for index.html file if no JS found
+if (!foundJSFile) {
+  if (fs.existsSync(path.join(TEMP_DIR, 'index.html'))) {
+    foundHTMLFile = true;
+  }
+}
+
+if (foundJSFile) {
+  console.log(green(`✅ Found JS entry: ${path.basename(foundJSFile)}`));
+  require(foundJSFile);
+} else if (foundHTMLFile) {
+  console.log(green('✅ Found HTML entry: index.html'));
+  const app = express();
+  app.use(express.static(TEMP_DIR));
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(TEMP_DIR, 'index.html'));
+  });
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(blue(`🌐 Serving HTML on http://localhost:${PORT}`));
+  });
+} else {
+  console.log(red('❌ No valid entry file (index.js, running.js, main.js, index.html) found.'));
+  process.exit(1);
+}
