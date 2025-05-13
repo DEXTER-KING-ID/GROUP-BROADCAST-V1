@@ -3,14 +3,14 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Load environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
+const REPO_NAME = PRIVATE_REPO.split('/')[1]; // ➜ 'GROUP-BROADCAST-SYSTEM'
 const BRANCH = 'main';
-const CLONE_DIR = path.resolve(__dirname); // 🔄 Use root directory of current script
+const CLONE_DIR = path.resolve(__dirname, REPO_NAME);
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
-// Color functions
+// Colors
 const green = (msg) => `\x1b[32m${msg}\x1b[0m`;
 const yellow = (msg) => `\x1b[33m${msg}\x1b[0m`;
 const blue = (msg) => `\x1b[36m${msg}\x1b[0m`;
@@ -20,8 +20,9 @@ const bold = (msg) => `\x1b[1m${msg}\x1b[0m`;
 console.log(bold(green('\n🌟 DEXTER BOT STARTING...\n')));
 
 function cloneRepo() {
-  console.log(blue('📥 Cloning private bot repo...'));
-  execSync(`git clone -b ${BRANCH} https://${GITHUB_TOKEN}@github.com/${PRIVATE_REPO}.git ${CLONE_DIR}`, {
+  console.log(blue(`📥 Cloning repo '${REPO_NAME}' into ${CLONE_DIR}...`));
+  execSync(`git clone -b ${BRANCH} https://${GITHUB_TOKEN}@github.com/${PRIVATE_REPO}.git`, {
+    cwd: __dirname,
     stdio: 'inherit',
   });
 }
@@ -69,15 +70,15 @@ OWNER_NUMBER=${process.env.OWNER_NUMBER}
 }
 
 // === EXECUTION ===
-if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
+if (!fs.existsSync(CLONE_DIR)) {
   cloneRepo();
   writeEnvFile();
-  installPackages(); // ✅ Install after clone
+  installPackages();
 } else if (AUTO_UPDATE) {
   const updated = updateRepo();
   if (updated) {
     writeEnvFile();
-    installPackages(); // ✅ Reinstall if updated
+    installPackages();
     console.log(red('\n🔁 Update detected. Restarting bot...\n'));
     process.exit(1);
   }
@@ -86,4 +87,22 @@ if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
 }
 
 writeEnvFile();
-require(path.resolve(CLONE_DIR, 'index.js'));
+
+// === Dynamically run the correct startup file ===
+const possibleEntryFiles = ['index.js', 'running.js', 'start.js'];
+
+let entryFound = false;
+for (const file of possibleEntryFiles) {
+  const fullPath = path.join(CLONE_DIR, file);
+  if (fs.existsSync(fullPath)) {
+    console.log(green(`🚀 Launching: ${file}\n`));
+    require(fullPath);
+    entryFound = true;
+    break;
+  }
+}
+
+if (!entryFound) {
+  console.log(red('❌ No entry file found in cloned repo! Expected one of: index.js, running.js, start.js'));
+  process.exit(1);
+}
