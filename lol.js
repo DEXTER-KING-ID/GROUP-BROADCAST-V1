@@ -26,11 +26,21 @@ function cloneRepo() {
   });
 }
 
+function installPackages() {
+  const packageJsonPath = path.join(CLONE_DIR, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    console.log(blue('📦 Installing npm packages...'));
+    execSync('npm install', { cwd: CLONE_DIR, stdio: 'inherit' });
+    console.log(green('✅ Packages installed successfully.\n'));
+  } else {
+    console.log(yellow('⚠️ No package.json found. Skipping npm install.\n'));
+  }
+}
+
 function updateRepo() {
   console.log(blue('🔄 Checking for updates...'));
   const oldHash = execSync(`git -C ${CLONE_DIR} rev-parse HEAD`).toString().trim();
 
-  // Fetch + log status
   execSync(`git -C ${CLONE_DIR} fetch`, { stdio: 'ignore' });
   const status = execSync(`git -C ${CLONE_DIR} diff --name-only HEAD origin/${BRANCH}`).toString();
 
@@ -44,7 +54,6 @@ function updateRepo() {
     if (file.trim()) console.log('   → ' + yellow(file.trim()));
   });
 
-  // Pull changes
   execSync(`git -C ${CLONE_DIR} pull`, { stdio: 'inherit' });
 
   const newHash = execSync(`git -C ${CLONE_DIR} rev-parse HEAD`).toString().trim();
@@ -63,12 +72,14 @@ OWNER_NUMBER=${process.env.OWNER_NUMBER}
 if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
   cloneRepo();
   writeEnvFile();
+  installPackages(); // ✅ Install after clone
 } else if (AUTO_UPDATE) {
   const updated = updateRepo();
   if (updated) {
     writeEnvFile();
+    installPackages(); // ✅ Reinstall if updated
     console.log(red('\n🔁 Update detected. Restarting bot...\n'));
-    process.exit(1); // Triggers auto-restart
+    process.exit(1);
   }
 } else {
   console.log(yellow('⚠️ Repo exists. AUTO_UPDATE is off.\n'));
