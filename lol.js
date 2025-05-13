@@ -77,6 +77,46 @@ if (!fs.existsSync(TEMP_DIR)) {
 
 writeEnvFile();
 
+// Fetch package.json from the cloned repo
+function getPackageJson() {
+  const packageJsonPath = path.join(TEMP_DIR, 'package.json');
+
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = require(packageJsonPath);
+    console.log(green('✅ Found package.json:'));
+
+    // You can access dependencies, scripts, etc., here
+    console.log(yellow('Dependencies:'));
+    console.log(packageJson.dependencies);
+
+    // For example, install missing dependencies
+    if (packageJson.dependencies) {
+      try {
+        execSync('npm install', { cwd: TEMP_DIR, stdio: 'inherit' });
+        console.log(green('✅ Dependencies installed.'));
+      } catch (err) {
+        console.log(red('❌ Error installing dependencies.'));
+      }
+    }
+
+    // You can also use package.json scripts, like starting the server
+    if (packageJson.scripts && packageJson.scripts.start) {
+      try {
+        execSync('npm run start', { cwd: TEMP_DIR, stdio: 'inherit' });
+        console.log(green('✅ Server started from package.json script.'));
+      } catch (err) {
+        console.log(red('❌ Error running start script.'));
+      }
+    }
+
+  } else {
+    console.log(red('❌ No package.json found in the cloned repo.'));
+  }
+}
+
+// Get package.json and proceed
+getPackageJson();
+
 // Auto detect entry point (JS/HTML)
 const possibleJSFiles = ['index.js', 'main.js', 'running.js', 'app.js'];
 let foundJSFile;
