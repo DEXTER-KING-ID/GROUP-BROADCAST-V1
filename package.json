@@ -1,8 +1,8 @@
 {
   "name": "dexter-deployer",
-  "main": "lol.js",
+  "main": "dexter.js",
   "scripts": {
-    "start": "node lol.js"
+    "start": "node dexter.js"
   },
   "dependencies": {
     "dotenv": "^16.0.0"
