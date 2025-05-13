@@ -3,13 +3,14 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Load environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const PRIVATE_REPO = 'DEXTER-KING-ID/GROUP-BROADCAST-SYSTEM';
 const BRANCH = 'main';
-const CLONE_DIR = './DEXTER';
+const CLONE_DIR = path.resolve(__dirname); // 🔄 Use root directory of current script
 const AUTO_UPDATE = process.env.AUTO_UPDATE === 'true';
 
-// Color Functions
+// Color functions
 const green = (msg) => `\x1b[32m${msg}\x1b[0m`;
 const yellow = (msg) => `\x1b[33m${msg}\x1b[0m`;
 const blue = (msg) => `\x1b[36m${msg}\x1b[0m`;
@@ -54,12 +55,12 @@ function writeEnvFile() {
   const envContent = `SESSION_ID=${process.env.SESSION_ID}
 OWNER_NUMBER=${process.env.OWNER_NUMBER}
 `;
-  fs.writeFileSync(`${CLONE_DIR}/.env`, envContent);
+  fs.writeFileSync(path.join(CLONE_DIR, '.env'), envContent);
   console.log(blue('🧾 .env file written to bot directory.\n'));
 }
 
 // === EXECUTION ===
-if (!fs.existsSync(CLONE_DIR)) {
+if (!fs.existsSync(path.join(CLONE_DIR, '.git'))) {
   cloneRepo();
   writeEnvFile();
 } else if (AUTO_UPDATE) {
