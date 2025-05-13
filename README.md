@@ -1,4 +1,4 @@
-# 📢 GROUP BROADCAST V1
+# 📢 GROUP BROADCAST V1 PUBLIC MODE
 
 **GROUP BROADCAST V1** is a powerful WhatsApp tool that allows you to send broadcast messages to all your WhatsApp groups. This tool was developed by **Real Dexter**.
 
